@@ -1,0 +1,21 @@
+---
+- hosts: manager-node-1
+  become: true
+
+  tasks:
+    - name: Deploy registry container
+      shell: docker run -d -p 5000:5000 --restart=always --name registry registry:2
+
+- hosts: all
+  gather_facts: no
+  become: true
+  vars:
+    insecure_registries: {
+      "insecure-registries": [ "192.168.100.10:5000" ]
+    }
+
+  tasks:
+    - name: Add created insecure registry to docker daemon
+      copy:
+        dest: "/etc/docker/daemon.json"
+        content: "{{ insecure_registries }}"

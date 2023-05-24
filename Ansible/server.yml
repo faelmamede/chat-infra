@@ -1,0 +1,10 @@
+---
+- hosts: manager-node-1
+  become: true
+
+  tasks:
+    - name: Start express server on port 3000
+      shell: pm2 start /opt/server/index.js
+
+    - name: Init login interface
+      shell: docker run --name login-interface -d -p 8000:8000 --restart=always 192.168.100.10:5000/login-chat:latest

@@ -1,0 +1,37 @@
+---
+- hosts: manager-node-1
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Initialize the cluster
+      shell: docker swarm init --advertise-addr 192.168.100.10
+
+    - name: Removing worker job for the manager, i.e, manager will not run services
+      shell: docker node update --availability drain manager-node-1
+
+    - name: Get manager token to join in the cluster as master
+      shell: docker swarm join-token manager
+      register: master_join_command_raw
+
+    - name: Prepare master token removing useless stdout
+      set_fact:
+        master_join_command: "{{ master_join_command_raw.stdout_lines[2] }}"
+
+    - name: Get worker token to join in the cluster as worker
+      shell: docker swarm join-token worker
+      register: worker_join_command_raw
+
+    - name: Prepare worker token removing useless stdout
+      set_fact:
+        worker_join_command: "{{ worker_join_command_raw.stdout_lines[2] }}"
+
+- hosts: workers
+  become: true
+
+  tasks:
+    - name: Workers join to the cluster
+      shell: "{{ hostvars['manager-node-1'].worker_join_command }} >> node_joined.txt"
+      args:
+        chdir: $HOME
+        creates: node_joined.txt
